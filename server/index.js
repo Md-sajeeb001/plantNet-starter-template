@@ -51,6 +51,7 @@ const client = new MongoClient(uri, {
 async function run() {
   const userCollections = client.db("planteNet-sessio").collection("users");
   const plantCollections = client.db("planteNet-sessio").collection("plants");
+  const ordertCollections = client.db("planteNet-sessio").collection("orders");
 
   try {
     // Generate jwt token
@@ -109,10 +110,27 @@ async function run() {
       res.send(result);
     });
 
+    // get plant data in db
     app.get("/plants", async (req, res) => {
       const result = await plantCollections.find().toArray();
       res.send(result);
     });
+
+    // get plant data by id form db
+    app.get("/plant/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await plantCollections.findOne(query);
+      res.send(result);
+    });
+
+    // post purchase info in db
+    app.post("/orders", verifyToken, async (req, res) => {
+      const purchase = req.body;
+      const result = await ordertCollections.insertOne(purchase);
+      res.send(result);
+    });
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
