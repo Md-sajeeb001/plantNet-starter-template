@@ -2,7 +2,6 @@
 import { Link } from "react-router-dom";
 
 const Card = ({ plant }) => {
-  console.log(plant);
   const { name, price, quantity, category, image, _id } = plant || {};
   return (
     <Link
