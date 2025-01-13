@@ -131,6 +131,79 @@ async function run() {
       res.send(result);
     });
 
+    // Manage plant quantity
+    app.patch("/plants/quantity/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const { quantityToUpdate, status } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      let updateDoc = {
+        $inc: { quantity: -quantityToUpdate },
+      };
+      if (status === "increase") {
+        updateDoc = {
+          $inc: { quantity: quantityToUpdate },
+        };
+      }
+      const result = await plantCollections.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // get order Collection in db
+    app.get("/orders/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { "customer.email": email };
+      const result = await ordertCollections
+        .aggregate([
+          {
+            $match: query,
+          },
+          {
+            $addFields: {
+              plantId: { $toObjectId: "$plantId" },
+            },
+          },
+          {
+            $lookup: {
+              from: "plants",
+              localField: "plantId",
+              foreignField: "_id",
+              as: "plants",
+            },
+          },
+          { $unwind: "$plants" },
+          {
+            $addFields: {
+              name: "$plants.name",
+              category: "$plants.category",
+              image: "$plants.image",
+            },
+          },
+          {
+            $project: {
+              plants: 0,
+            },
+          },
+        ])
+        .toArray();
+
+      // const result = await ordertCollections.find(query).toArray();
+      console.log("result", result);
+      res.send(result);
+    });
+
+    // delete order from db by a specific id by user
+    app.delete("/orders/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      
+      // if status delivered you can't delete order
+      const order = await ordertCollections.findOne(query);
+      if (order?.status === "delivered") {
+        return res.status(409).send("Cannot cancel once product is delivered");
+      }
+      const result = await ordertCollections.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
