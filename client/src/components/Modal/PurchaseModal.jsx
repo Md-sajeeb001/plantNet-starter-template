@@ -12,13 +12,15 @@ import toast from "react-hot-toast";
 import useAuth from "../../hooks/useAuth";
 import LoadingSpinner from "../Shared/LoadingSpinner";
 import useAxiosSecure from "../../hooks/useAxiosSecure";
+import { useNavigate } from "react-router-dom";
 
-const PurchaseModal = ({ closeModal, isOpen, plant, isLoading }) => {
+const PurchaseModal = ({ closeModal, isOpen, plant, isLoading, refetch }) => {
   const { user } = useAuth();
   const axiosSecure = useAxiosSecure();
   const { quantity, price, category, name, _id, seller } = plant || {};
   const [totalQuantity, setTotalQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(price);
+  const navigate = useNavigate();
 
   const [purchaseInfo, setPurchaseInfo] = useState({
     customer: {
@@ -52,10 +54,17 @@ const PurchaseModal = ({ closeModal, isOpen, plant, isLoading }) => {
   };
 
   const handelPurchase = async () => {
-    console.table(purchaseInfo);
     try {
       await axiosSecure.post("/orders", purchaseInfo);
+
+      // decrease quantity from plant collection
+      await axiosSecure.patch(`/plants/quantity/${_id}`, {
+        quantityToUpdate: totalQuantity,
+        status: "decrease",
+      });
       toast.success("purchase successful!");
+      navigate("/dashboard/my-orders");
+      refetch();
     } catch (err) {
       console.log(err);
     } finally {

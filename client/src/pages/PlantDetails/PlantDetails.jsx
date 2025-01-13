@@ -113,6 +113,7 @@ const PlantDetails = () => {
             closeModal={closeModal}
             isOpen={isOpen}
             isLoading={isLoading}
+            refetch={refetch}
           />
         </div>
       </div>
